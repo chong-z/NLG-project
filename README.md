@@ -1,5 +1,7 @@
 # CS 269 NLG Project
 
+Forked from https://github.com/timbmg/Sentence-VAE
+
 ## Steps to reproduce Table 2
 ```
 sh dowloaddata.sh
