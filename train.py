@@ -112,14 +112,14 @@ def main(args):
 
             for iteration, batch in enumerate(data_loader):
 
-                batch_size = batch['input'].size(0)
+                batch_size = batch['input_sequence'].size(0)
 
                 for k, v in batch.items():
                     if torch.is_tensor(v):
                         batch[k] = to_var(v)
 
                 # Forward pass
-                logp, mean, logv, z = model(batch['input'], batch['length'])
+                logp, mean, logv, z = model(**batch)
 
                 # loss calculation
                 NLL_loss, KL_loss, KL_weight = loss_fn(logp, batch['target'],

@@ -19,6 +19,12 @@ def to_var(x):
     return x
 
 
+def to_tensor(d):
+    for k, v in d.items():
+        d[k] = to_var(torch.tensor(v))
+    return d
+
+
 def idx2word(idx, i2w, pad_idx):
     sent_str = [str()]*len(idx)
     for i, sent in enumerate(idx):

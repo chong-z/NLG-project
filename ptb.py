@@ -7,7 +7,16 @@ from collections import defaultdict
 from torch.utils.data import Dataset
 from nltk.tokenize import TweetTokenizer
 
-from utils import OrderedCounter
+from utils import OrderedCounter, to_tensor
+
+def DefaultTokenizer():
+    return PTB(
+        data_dir='data',
+        split='valid',
+        create_data=False,
+        max_sequence_length=60,
+        min_occ=1
+    )
 
 class PTB(Dataset):
 
@@ -19,9 +28,10 @@ class PTB(Dataset):
         self.max_sequence_length = kwargs.get('max_sequence_length', 50)
         self.min_occ = kwargs.get('min_occ', 3)
 
-        self.raw_data_path = os.path.join(data_dir, 'ptb.'+split+'.txt')
         self.data_file = 'ptb.'+split+'.json'
         self.vocab_file = 'ptb.vocab.json'
+
+        self.tokenizer = TweetTokenizer(preserve_case=False)
 
         if create_data:
             print("Creating new %s ptb data."%split.upper())
@@ -42,7 +52,7 @@ class PTB(Dataset):
         idx = str(idx)
 
         return {
-            'input': np.asarray(self.data[idx]['input']),
+            'input_sequence': np.asarray(self.data[idx]['input_sequence']),
             'target': np.asarray(self.data[idx]['target']),
             'length': self.data[idx]['length']
         }
@@ -89,6 +99,56 @@ class PTB(Dataset):
 
         self.w2i, self.i2w = vocab['w2i'], vocab['i2w']
 
+    def _encode(self, sentence):
+        words = self.tokenizer.tokenize(sentence)
+
+        input = ['<sos>'] + words
+        input = input[:self.max_sequence_length]
+
+        target = words[:self.max_sequence_length-1]
+        target = target + ['<eos>']
+
+        assert len(input) == len(target), "%i, %i"%(len(input), len(target))
+        length = len(input)
+
+        input.extend(['<pad>'] * (self.max_sequence_length-length))
+        target.extend(['<pad>'] * (self.max_sequence_length-length))
+
+        input = [self.w2i.get(w, self.w2i['<unk>']) for w in input]
+        target = [self.w2i.get(w, self.w2i['<unk>']) for w in target]
+
+        return {
+            'input_sequence': input,
+            'target': target,
+            'length': length,
+        }
+
+    def encode(self, sentence):
+        encoded = self._encode(sentence)
+        for k, v in encoded.items():
+            encoded[k] = np.asarray([v])
+        return to_tensor(encoded)
+
+    def _load_raw_data(self):
+        lines = []
+
+        # Load original ptb data.
+        raw_data_path = os.path.join(self.data_dir, 'ptb.'+self.split+'.txt')
+        with open(raw_data_path, 'r') as file:
+            lines.extend(file.readlines())
+
+        sst2_split_map = {
+            'train': 'train',
+            'valid': 'validation',
+            'test': 'test',
+        }
+        # Load SST-2 dataset.
+        import nlp
+        sst2_data = nlp.load_dataset('glue', 'sst2')[sst2_split_map[self.split]]
+        lines.extend(sst2_data['sentence'])
+
+        return lines
+
     def _create_data(self):
 
         if self.split == 'train':
@@ -96,34 +156,12 @@ class PTB(Dataset):
         else:
             self._load_vocab()
 
-        tokenizer = TweetTokenizer(preserve_case=False)
-
         data = defaultdict(dict)
-        with open(self.raw_data_path, 'r') as file:
+        raw_data = self._load_raw_data()
 
-            for i, line in enumerate(file):
-
-                words = tokenizer.tokenize(line)
-
-                input = ['<sos>'] + words
-                input = input[:self.max_sequence_length]
-
-                target = words[:self.max_sequence_length-1]
-                target = target + ['<eos>']
-
-                assert len(input) == len(target), "%i, %i"%(len(input), len(target))
-                length = len(input)
-
-                input.extend(['<pad>'] * (self.max_sequence_length-length))
-                target.extend(['<pad>'] * (self.max_sequence_length-length))
-
-                input = [self.w2i.get(w, self.w2i['<unk>']) for w in input]
-                target = [self.w2i.get(w, self.w2i['<unk>']) for w in target]
-
-                id = len(data)
-                data[id]['input'] = input
-                data[id]['target'] = target
-                data[id]['length'] = length
+        for i, line in enumerate(raw_data):
+            id = len(data)
+            data[id] = self._encode(line)
 
         with io.open(os.path.join(self.data_dir, self.data_file), 'wb') as data_file:
             data = json.dumps(data, ensure_ascii=False)
@@ -135,8 +173,6 @@ class PTB(Dataset):
 
         assert self.split == 'train', "Vocablurary can only be created for training file."
 
-        tokenizer = TweetTokenizer(preserve_case=False)
-
         w2c = OrderedCounter()
         w2i = dict()
         i2w = dict()
@@ -146,16 +182,16 @@ class PTB(Dataset):
             i2w[len(w2i)] = st
             w2i[st] = len(w2i)
 
-        with open(self.raw_data_path, 'r') as file:
+        raw_data = self._load_raw_data()
 
-            for i, line in enumerate(file):
-                words = tokenizer.tokenize(line)
-                w2c.update(words)
+        for i, line in enumerate(raw_data):
+            words = self.tokenizer.tokenize(line)
+            w2c.update(words)
 
-            for w, c in w2c.items():
-                if c > self.min_occ and w not in special_tokens:
-                    i2w[len(w2i)] = w
-                    w2i[w] = len(w2i)
+        for w, c in w2c.items():
+            if c > self.min_occ and w not in special_tokens:
+                i2w[len(w2i)] = w
+                w2i[w] = len(w2i)
 
         assert len(w2i) == len(i2w)
 

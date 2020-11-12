@@ -4,6 +4,7 @@ import torch
 import argparse
 
 from model import SentenceVAE
+from ptb import DefaultTokenizer
 from utils import to_var, idx2word, interpolate
 
 
@@ -29,6 +30,7 @@ def main(args):
         num_layers=args.num_layers,
         bidirectional=args.bidirectional
         )
+    tokenizer = DefaultTokenizer()
 
     if not os.path.exists(args.load_checkpoint):
         raise FileNotFoundError(args.load_checkpoint)
@@ -38,15 +40,22 @@ def main(args):
 
     if torch.cuda.is_available():
         model = model.cuda()
-    
+
     model.eval()
 
-    samples, z = model.inference(n=args.num_samples)
+    with torch.no_grad():
+        samples, z = model.inference(n=args.num_samples)
     print('----------SAMPLES----------')
     print(*idx2word(samples, i2w=i2w, pad_idx=w2i['<pad>']), sep='\n')
 
-    z1 = torch.randn([args.latent_size]).numpy()
-    z2 = torch.randn([args.latent_size]).numpy()
+    # z0 = torch.randn([args.latent_size]).numpy()
+    # z2 = torch.randn([args.latent_size]).numpy()
+    start_encode = tokenizer.encode("a sometimes tedious film .")
+    # end_encode = tokenizer.encode("it 's a charming and often affecting journey .")
+    end_encode = tokenizer.encode("a deep and meaningful film .")
+    with torch.no_grad():
+        z1 = model._encode(**start_encode)['z'].cpu()[0]
+        z2 = model._encode(**end_encode)['z'].cpu()[0]
     z = to_var(torch.from_numpy(interpolate(start=z1, end=z2, steps=8)).float())
     samples, _ = model.inference(z=z)
     print('-------INTERPOLATION-------')
