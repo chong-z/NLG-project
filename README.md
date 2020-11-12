@@ -1,3 +1,13 @@
+# CS 269 NLG Project
+
+## Steps to reproduce Table 2
+```
+sh dowloaddata.sh
+python3 train.py
+# Find $CHECKPOINT in the output which looks like `bin/2020-Nov-12-09:37:41/E9.pytorch`.
+python3 inference.py -c $CHECKPOINT -n 5
+```
+
 # Sentence Variational Autoencoder
 
 PyTorch re-implementation of [_Generating Sentences from a Continuous Space_](https://arxiv.org/abs/1511.06349) by Bowman et al. 2015.
