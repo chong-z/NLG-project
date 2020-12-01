@@ -10,6 +10,11 @@ python3 train.py
 python3 inference.py -c $CHECKPOINT -n 5
 ```
 
+## TODOs
+Currently we are able to train and generate sentences with SST-2 (see `ptb.py#L146` for loading SST-2 dataset from `nlp`), and the todos are:
+1. Improve the quality of generated sentences (see Table 2, the interpolations do not really make sense)
+2. Implement adversarial attacks (e.g., through the TextAttack framework)
+
 # Sentence Variational Autoencoder
 
 PyTorch re-implementation of [_Generating Sentences from a Continuous Space_](https://arxiv.org/abs/1511.06349) by Bowman et al. 2015.
