@@ -43,21 +43,45 @@ def main(args):
 
     model.eval()
 
-    with torch.no_grad():
-        samples, z = model.inference(n=args.num_samples)
+    # with torch.no_grad():
+    #     samples, z = model.inference(n=args.num_samples)
     print('----------SAMPLES----------')
-    print(*idx2word(samples, i2w=i2w, pad_idx=w2i['<pad>']), sep='\n')
+
+    sample_start = "a sometimes tedious film ."
+    sample_end = "a deep and meaningful film ."
+
+    print(sample_start)
+    print(sample_end)
+
+    # print(*idx2word(samples, i2w=i2w, pad_idx=w2i['<pad>']), sep='\n')
 
     # z0 = torch.randn([args.latent_size]).numpy()
     # z2 = torch.randn([args.latent_size]).numpy()
-    start_encode = tokenizer.encode("a sometimes tedious film .")
+    start_encode = tokenizer.encode(sample_start)
+    # print(start_encode)
     # end_encode = tokenizer.encode("it 's a charming and often affecting journey .")
-    end_encode = tokenizer.encode("a deep and meaningful film .")
+    end_encode = tokenizer.encode(sample_end)
     with torch.no_grad():
-        z1 = model._encode(**start_encode)['z'].cpu()[0]
-        z2 = model._encode(**end_encode)['z'].cpu()[0]
-    z = to_var(torch.from_numpy(interpolate(start=z1, end=z2, steps=8)).float())
-    samples, _ = model.inference(z=z)
+        z1 = model._encode(**start_encode)
+        z1_hidden = z1['z'].cpu()[0]
+
+        z2 = model._encode(**end_encode)
+        z2_hidden = z2['z'].cpu()[0]
+
+    z_hidden = to_var(torch.from_numpy(interpolate(start=z1_hidden, end=z2_hidden, steps=8)).float())
+
+    if args.rnn_type == "lstm":
+        z1_cell_state = z1['z_cell_state'].cpu()[0].squeeze()
+        z2_cell_state = z2['z_cell_state'].cpu()[0].squeeze()
+
+        # print(z1_cell_state.shape)
+
+        z_cell_states = \
+            to_var(torch.from_numpy(interpolate(start=z1_cell_state, end=z2_cell_state, steps=8)).float())
+
+        samples, _ = model.inference(z=z_hidden, z_cell_state=z_cell_states)
+    else:
+        samples, _ = model.inference(z=z_hidden, z_cell_state=None)
     print('-------INTERPOLATION-------')
     print(*idx2word(samples, i2w=i2w, pad_idx=w2i['<pad>']), sep='\n')
 

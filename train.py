@@ -92,6 +92,9 @@ def main(args):
     step = 0
     for epoch in range(args.epochs):
 
+        # Keep track of epoch loss
+        epoch_loss = []
+
         for split in splits:
 
             data_loader = DataLoader(
@@ -133,6 +136,9 @@ def main(args):
                     loss.backward()
                     optimizer.step()
                     step += 1
+
+                    # Add loss
+                    epoch_loss.append(loss.item())
 
                 # bookkeepeing
                 tracker['ELBO'] = torch.cat((tracker['ELBO'], loss.data.view(1, -1)), dim=0)

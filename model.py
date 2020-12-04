@@ -32,8 +32,8 @@ class SentenceVAE(nn.Module):
             rnn = nn.RNN
         elif rnn_type == 'gru':
             rnn = nn.GRU
-        # elif rnn_type == 'lstm':
-        #     rnn = nn.LSTM
+        elif rnn_type == 'lstm':
+            rnn = nn.LSTM
         else:
             raise ValueError()
 
@@ -63,7 +63,13 @@ class SentenceVAE(nn.Module):
 
         packed_input = rnn_utils.pack_padded_sequence(input_embedding, sorted_lengths.data.tolist(), batch_first=True)
 
-        _, hidden = self.encoder_rnn(packed_input)
+        # LSTMs have 3 outputs
+        cell_state = None
+        if self.rnn_type == "lstm":
+            _, (hidden, cell_state) = self.encoder_rnn(packed_input)
+            # hidden = torch.cat((hidden, cell_state), 0)
+        else:
+            _, hidden = self.encoder_rnn(packed_input)
 
         if self.bidirectional or self.num_layers > 1:
             # flatten hidden state
@@ -78,8 +84,25 @@ class SentenceVAE(nn.Module):
 
         z = to_var(torch.randn([batch_size, self.latent_size]))
         z = z * std + mean
+
+        # If we are using an lstm, we do the same to the cell state
+        z_cell_state = None
+        if self.rnn_type == "lstm":
+            z_mean = self.hidden2mean(cell_state)
+            z_logv = self.hidden2logv(cell_state)
+            z_std = torch.exp(0.5 * z_logv)
+
+            # print(z_mean.shape)
+            # print(z_std.shape)
+            # print(cell_state.shape[-1])
+
+            z_cell_state = to_var(torch.randn([batch_size, self.latent_size ]))
+            z_cell_state = z_cell_state * z_std + z_mean
+
+
         return {
             'z': z,
+            'z_cell_state': z_cell_state,
             'input_sequence': input_sequence,
             'sorted_lengths': sorted_lengths,
             'sorted_idx': sorted_idx,
@@ -87,12 +110,20 @@ class SentenceVAE(nn.Module):
             'logv': logv,
         }
 
-    def _decode(self, z, input_sequence, sorted_lengths, sorted_idx, mean, logv):
+    def _decode(self, z, z_cell_state, input_sequence, sorted_lengths, sorted_idx, mean, logv):
         batch_size = input_sequence.size(0)
         input_embedding = self.embedding(input_sequence)
 
         # DECODER
-        hidden = self.latent2hidden(z)
+        hidden = self.latent2hidden(z)  # Z is batch_size, latent size i.e. (32, 16)
+        #  Hidden is batch_size, hidden size (i.e. 32, 256)
+
+        lstm_cell_state = None
+        if self.rnn_type == "lstm":
+            lstm_cell_state = self.latent2hidden(z_cell_state)
+            # Have zero information running through the cell state
+            lstm_cell_state = to_var(torch.zeros(lstm_cell_state.shape))
+
 
         if self.bidirectional or self.num_layers > 1:
             # unflatten hidden state
@@ -114,7 +145,12 @@ class SentenceVAE(nn.Module):
         packed_input = rnn_utils.pack_padded_sequence(input_embedding, sorted_lengths.data.tolist(), batch_first=True)
 
         # decoder forward pass
-        outputs, _ = self.decoder_rnn(packed_input, hidden)
+        if self.rnn_type == "lstm":
+            # Get the actual hidden values and cell states
+            # outputs, _ = self.decoder_rnn(packed_input, [hidden, lstm_cell_state])
+            outputs, _ = self.decoder_rnn(packed_input, [hidden, hidden])
+        else:
+            outputs, _ = self.decoder_rnn(packed_input, hidden)
 
         # process outputs
         padded_outputs = rnn_utils.pad_packed_sequence(outputs, batch_first=True)[0]
@@ -129,15 +165,20 @@ class SentenceVAE(nn.Module):
 
         return logp, mean, logv, z
 
-    def inference(self, n=4, z=None):
+    def inference(self, n=4, z=None, z_cell_state=None):
 
         if z is None:
             batch_size = n
             z = to_var(torch.randn([batch_size, self.latent_size]))
+            z_cell_state = to_var(torch.randn([batch_size, self.latent_size]))
         else:
             batch_size = z.size(0)
+            z_cell_state = z
+        # z_cell_state = to_var(torch.randn([batch_size, self.latent_size]))
+
 
         hidden = self.latent2hidden(z)
+        lstm_cell_state = self.latent2hidden(z_cell_state)
 
         if self.bidirectional or self.num_layers > 1:
             # unflatten hidden state
@@ -165,7 +206,34 @@ class SentenceVAE(nn.Module):
 
             input_embedding = self.embedding(input_sequence)
 
-            output, hidden = self.decoder_rnn(input_embedding, hidden)
+            # If we are using bidirectional, we have to squeeze the hidden layer
+            if self.bidirectional:
+                hidden = hidden.squeeze()
+
+            if self.rnn_type == "lstm":
+                if len(lstm_cell_state.shape) < 3:
+                    lstm_cell_state= lstm_cell_state.unsqueeze(0)
+
+                # Set lstm cell state to zeros
+                # lstm_cell_state = to_var(torch.zeros(hidden.shape))
+
+                # print(hidden.shape)
+                # print(lstm_cell_state.shape)
+                # print("(*)")
+
+                output, (hidden, lstm_cell_state) = \
+                    self.decoder_rnn(input_embedding, [hidden, lstm_cell_state])
+
+                # Make sure you squeeze the output
+                output = output.squeeze()
+
+            else:
+                # print(hidden.shape)
+                # print(lstm_cell_state.shape)
+                # print("(*)")
+                output, hidden = self.decoder_rnn(input_embedding, hidden)
+
+            # print(output.shape)
 
             logits = self.outputs2vocab(output)
 
@@ -186,6 +254,7 @@ class SentenceVAE(nn.Module):
             if len(running_seqs) > 0:
                 input_sequence = input_sequence[running_seqs]
                 hidden = hidden[:, running_seqs]
+                lstm_cell_state = lstm_cell_state[:, running_seqs]
 
                 running_seqs = torch.arange(0, len(running_seqs), out=self.tensor()).long()
 

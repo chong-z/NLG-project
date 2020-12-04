@@ -133,9 +133,9 @@ class PTB(Dataset):
         lines = []
 
         # Load original ptb data.
-        raw_data_path = os.path.join(self.data_dir, 'ptb.'+self.split+'.txt')
-        with open(raw_data_path, 'r') as file:
-            lines.extend(file.readlines())
+        # raw_data_path = os.path.join(self.data_dir, 'ptb.'+self.split+'.txt')
+        # with open(raw_data_path, 'r') as file:
+        #     lines.extend(file.readlines())
 
         sst2_split_map = {
             'train': 'train',
