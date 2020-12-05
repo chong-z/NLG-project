@@ -3,3 +3,4 @@ nltk==3.5
 torch==1.5.0
 tensorboardX==2.0
 nlp==0.4.0
+pytorch-pretrained-bert==0.6.2

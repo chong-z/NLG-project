@@ -10,14 +10,29 @@ from torch.utils.data import DataLoader
 from collections import OrderedDict, defaultdict
 
 from ptb import PTB
-from utils import to_var, idx2word, expierment_name
+from utils import to_var, idx2word, expierment_name, interpolate
 from model import SentenceVAE
+
+from latent_optimizer import Semantic_Loss
+
+import itertools
+import random
 
 
 def main(args):
+
+    # Load the vocab
+    with open(args.data_dir+'/ptb.vocab.json', 'r') as file:
+        vocab = json.load(file)
+
+    w2i, i2w = vocab['w2i'], vocab['i2w']
+
     ts = time.strftime('%Y-%b-%d-%H:%M:%S', time.gmtime())
 
     splits = ['train', 'valid'] + (['test'] if args.test else [])
+
+    # Initialize semantic loss
+    sl = Semantic_Loss()
 
     datasets = OrderedDict()
     for split in splits:
@@ -70,8 +85,15 @@ def main(args):
         elif anneal_function == 'linear':
             return min(1, step/x0)
 
+    def perplexity_anneal_function(anneal_function, step, k, x0):
+        if anneal_function == 'logistic':
+            return float(1/ 1+np.exp(-k*(step-x0)))
+        elif anneal_function == 'linear':
+            return min(1, (step/x0))
+
     NLL = torch.nn.NLLLoss(ignore_index=datasets['train'].pad_idx, reduction='sum')
-    def loss_fn(logp, target, length, mean, logv, anneal_function, step, k, x0):
+    def loss_fn(logp, target, length, mean, logv, anneal_function, step, k, x0, \
+        batch_perplexity, perplexity_anneal_function):
 
         # cut-off unnecessary padding from target, and flatten
         target = target[:, :torch.max(length).item()].contiguous().view(-1)
@@ -84,7 +106,12 @@ def main(args):
         KL_loss = -0.5 * torch.sum(1 + logv - mean.pow(2) - logv.exp())
         KL_weight = kl_anneal_function(anneal_function, step, k, x0)
 
-        return NLL_loss, KL_loss, KL_weight
+        # Perplexity
+        perp_loss = batch_perplexity
+        perp_weight = perplexity_anneal_function(anneal_function, step, k, x0)
+
+        return NLL_loss, KL_loss, KL_weight, perp_loss, perp_weight
+
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
@@ -113,7 +140,15 @@ def main(args):
             else:
                 model.eval()
 
+            batch_t_start = None
+
             for iteration, batch in enumerate(data_loader):
+
+                if batch_t_start:
+                    batch_run_time = time.time() - batch_t_start
+                    # print("Batch run time: " + str(batch_run_time))
+                batch_t_start = time.time()
+
 
                 batch_size = batch['input_sequence'].size(0)
 
@@ -121,14 +156,82 @@ def main(args):
                     if torch.is_tensor(v):
                         batch[k] = to_var(v)
 
+                # Get the original sentences in this batch
+                batch_sentences = idx2word(batch['input_sequence'], i2w=i2w, pad_idx=w2i['<pad>'])
+                # Remove the first tag
+                batch_sentences = [x.replace("<sos>", "") for x in batch_sentences]
+
                 # Forward pass
-                logp, mean, logv, z = model(**batch)
+                (logp, mean, logv, z), states = model(**batch)
 
-                # loss calculation
-                NLL_loss, KL_loss, KL_weight = loss_fn(logp, batch['target'],
-                    batch['length'], mean, logv, args.anneal_function, step, args.k, args.x0)
 
-                loss = (NLL_loss + KL_weight * KL_loss) / batch_size
+                # Choose some random pairs of samples within the batch
+                #  to get latent representations for
+                batch_index_pairs = list(itertools.combinations(np.arange(batch_size), 2))
+                random.shuffle(batch_index_pairs)
+                batch_index_pairs = batch_index_pairs[:args.perplexity_samples_per_batch]
+
+                batch_perplexity = []
+
+                # If we start the perplexity
+                start_perplexity = epoch > 10
+
+
+                if start_perplexity:
+                    # For each pair, get the intermediate representations in the latent space
+                    for index_pair in batch_index_pairs:
+
+                        with torch.no_grad():
+                            z1_hidden = states['z'][index_pair[0]].cpu()
+                            z2_hidden = states['z'][index_pair[1]].cpu()
+
+                        z_hidden = to_var(torch.from_numpy(interpolate(start=z1_hidden, end=z2_hidden, steps=1)).float())
+
+                        if args.rnn_type == "lstm":
+
+                            with torch.no_grad():
+                                z1_cell_state = states['z_cell_state'].cpu().squeeze()[index_pair[0]]
+                                z2_cell_state = states['z_cell_state'].cpu().squeeze()[index_pair[1]]
+
+                            z_cell_states = \
+                                to_var(torch.from_numpy(interpolate(start=z1_cell_state, end=z2_cell_state, steps=1)).float())
+
+                            samples, _ = model.inference(z=z_hidden, z_cell_state=z_cell_states)
+                        else:
+                            samples, _ = model.inference(z=z_hidden, z_cell_state=None)
+
+                        # Check interpolated sentences
+                        interpolated_sentences = idx2word(samples, i2w=i2w, pad_idx=w2i['<pad>'])
+                        # For each sentence, get the perplexity and show it
+                        perplexities = []
+                        for sentence in interpolated_sentences:
+                            perplexities.append(sl.get_perplexity(sentence))
+                        avg_sample_perplexity = sum(perplexities) / len(perplexities)
+                        batch_perplexity.append(avg_sample_perplexity)
+                    # Calculate batch perplexity
+                    avg_batch_perplexity = sum(batch_perplexity) / len(batch_perplexity)
+
+                    # loss calculation
+                    NLL_loss, KL_loss, KL_weight, perp_loss, perp_weight = loss_fn(logp, batch['target'],
+                        batch['length'], mean, logv, args.anneal_function, step, \
+                            args.k, args.x0, avg_batch_perplexity, perplexity_anneal_function)
+
+                    loss = ((NLL_loss + KL_weight * KL_loss) / batch_size) + (perp_loss * perp_weight)
+
+                else: # Epochs < X, so train without perplexity
+                    # loss calculation
+                    NLL_loss, KL_loss, KL_weight, perp_loss, perp_weight = loss_fn(logp, batch['target'],
+                        batch['length'], mean, logv, args.anneal_function, step, \
+                            args.k, args.x0, 0, perplexity_anneal_function)
+
+                    loss = (NLL_loss + KL_weight * KL_loss) / batch_size
+
+
+                # Turn model back into train, since inference changed to eval
+                if split == 'train':
+                    model.train()
+                else:
+                    model.eval()
 
                 # backward + optimization
                 if split == 'train':
@@ -153,9 +256,9 @@ def main(args):
                                       epoch*len(data_loader) + iteration)
 
                 if iteration % args.print_every == 0 or iteration+1 == len(data_loader):
-                    print("%s Batch %04d/%i, Loss %9.4f, NLL-Loss %9.4f, KL-Loss %9.4f, KL-Weight %6.3f"
+                    print("%s Batch %04d/%i, Loss %9.4f, NLL-Loss %9.4f, KL-Loss %9.4f, KL-Weight %6.3f, Perp-loss %9.4f, Perp-weight %6.3f"
                           % (split.upper(), iteration, len(data_loader)-1, loss.item(), NLL_loss.item()/batch_size,
-                          KL_loss.item()/batch_size, KL_weight))
+                          KL_loss.item()/batch_size, KL_weight, perp_loss, perp_weight))
 
                 if split == 'valid':
                     if 'target_sents' not in tracker:
@@ -215,6 +318,8 @@ if __name__ == '__main__':
     parser.add_argument('-log', '--logdir', type=str, default='logs')
     parser.add_argument('-bin', '--save_model_path', type=str, default='bin')
 
+    parser.add_argument('-psb', '--perplexity_samples_per_batch', type=int, default=10)
+
     args = parser.parse_args()
 
     args.rnn_type = args.rnn_type.lower()
@@ -224,4 +329,7 @@ if __name__ == '__main__':
     assert args.anneal_function in ['logistic', 'linear']
     assert 0 <= args.word_dropout <= 1
 
+    import time
+    start_t = time.time()
     main(args)
+    print("Total train time: " + str(time.time() - start_t))

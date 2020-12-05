@@ -7,6 +7,8 @@ from model import SentenceVAE
 from ptb import DefaultTokenizer
 from utils import to_var, idx2word, interpolate
 
+from latent_optimizer import Semantic_Loss
+
 
 def main(args):
     with open(args.data_dir+'/ptb.vocab.json', 'r') as file:
@@ -43,12 +45,18 @@ def main(args):
 
     model.eval()
 
+    # Initialize semantic loss
+    sl = Semantic_Loss()
+
     # with torch.no_grad():
     #     samples, z = model.inference(n=args.num_samples)
     print('----------SAMPLES----------')
 
     sample_start = "a sometimes tedious film ."
     sample_end = "a deep and meaningful film ."
+
+    sample_start = "a sometimes tedious film involving dull characters and boring motives."
+    sample_end = "a deep and meaningful film that refreshes the soul."
 
     print(sample_start)
     print(sample_end)
@@ -83,7 +91,13 @@ def main(args):
     else:
         samples, _ = model.inference(z=z_hidden, z_cell_state=None)
     print('-------INTERPOLATION-------')
-    print(*idx2word(samples, i2w=i2w, pad_idx=w2i['<pad>']), sep='\n')
+
+    interpolated_sentences = idx2word(samples, i2w=i2w, pad_idx=w2i['<pad>'])
+    # For each sentence, get the perplexity and show it
+    for sentence in interpolated_sentences:
+        print(sentence + "\t\t" + str(sl.get_perplexity(sentence)))
+
+    # print(*idx2word(samples, i2w=i2w, pad_idx=w2i['<pad>']), sep='\n')
 
 
 if __name__ == '__main__':

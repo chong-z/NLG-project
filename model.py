@@ -51,7 +51,7 @@ class SentenceVAE(nn.Module):
 
     def forward(self, *input, **kwargs):
         states = self._encode(*input, **kwargs)
-        return self._decode(**states)
+        return self._decode(**states), states
 
     def _encode(self, input_sequence, length, **kwargs):
         batch_size = input_sequence.size(0)
