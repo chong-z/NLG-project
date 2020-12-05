@@ -176,8 +176,8 @@ def main(args):
                 # If we start the perplexity
                 start_perplexity = epoch > 10
 
-
-                if start_perplexity:
+                # If we should have perplexity loss
+                if start_perplexity and args.perplexity_loss:
                     # For each pair, get the intermediate representations in the latent space
                     for index_pair in batch_index_pairs:
 
@@ -319,6 +319,7 @@ if __name__ == '__main__':
     parser.add_argument('-bin', '--save_model_path', type=str, default='bin')
 
     parser.add_argument('-psb', '--perplexity_samples_per_batch', type=int, default=10)
+    parser.add_argument('--perplexity_loss', action='store_true')
 
     args = parser.parse_args()
 
