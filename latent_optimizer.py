@@ -30,7 +30,7 @@ class Semantic_Loss():
         if len(sentence.split()) > 8:
             loss= self.model(tensor_input, lm_labels=tensor_input)
 
-
+            
 
 
         return math.exp(loss)
