@@ -118,8 +118,10 @@ def do_one_attack(vae, victim_sentence, victim_model, args):
     start_sentence = victim_sentence
     start_label = prob_to_label(victim_model(start_sentence))
     end_sentence = args.reference_sentence
-    end_label = prob_to_label(victim_model(end_sentence))
+    end_prob = victim_model(end_sentence)
+    end_label = prob_to_label(end_prob)
     assert start_label != end_label
+    best_adv_prob = end_prob
     for i in range(args.iter):
         print(f'-------ITERATION {i}-------')
         print(f'Victim Sentence: {start_sentence}')
@@ -128,17 +130,13 @@ def do_one_attack(vae, victim_sentence, victim_model, args):
 
         print('-------PREDICTIONS-------')
         interpolated_sentences = [start_sentence] + interpolated_sentences + [end_sentence]
-        best_adv_prob = None
         for i, sentence in enumerate(interpolated_sentences):
             prob = victim_model(sentence)
             label = prob_to_label(prob)
-            if i+1 < len(interpolated_sentences) and label != start_label:
-                if best_adv_prob is None or abs(prob - 0.5) < abs(best_adv_prob - 0.5):
-                    best_adv_prob = prob
-                    end_sentence = sentence
+            if label != start_label and abs(prob - 0.5) < abs(best_adv_prob - 0.5):
+                best_adv_prob = prob
+                end_sentence = sentence
             print(f'{sentence} pred:{prob}')
-        if best_adv_prob is None:
-            break
 
     print('-------Attack Result-------')
     print(f'Victim Sentence: {start_sentence} pred:{victim_model(start_sentence)}')
