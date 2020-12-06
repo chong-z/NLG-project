@@ -116,31 +116,42 @@ def do_one_attack(vae, victim_sentence, victim_model, args):
         return 1 if score > 0.5 else 0
 
     start_sentence = victim_sentence
-    start_label = prob_to_label(victim_model(start_sentence))
+    start_prob = victim_model(start_sentence)
+    start_label = prob_to_label(start_prob)
     end_sentence = args.reference_sentence
     end_prob = victim_model(end_sentence)
     end_label = prob_to_label(end_prob)
     assert start_label != end_label
     best_adv_prob = end_prob
+    is_initial = True
+
+    print(f'\n-------Initial Inputs-------')
+    print(f'Victim Sentence: {start_sentence} pred:{start_prob}')
+    print(f'Reference Sentence: {end_sentence} pred:{best_adv_prob}')
+
     for i in range(args.iter):
-        print(f'-------ITERATION {i}-------')
-        print(f'Victim Sentence: {start_sentence}')
-        print(f'Reference Sentence: {end_sentence}')
+        print(f'\n-------ITERATION {i}-------')
+        print(f'Best Adv Sentence: {end_sentence} pred:{best_adv_prob}')
         interpolated_sentences = get_interpolations(vae, start_sentence, end_sentence, args)
 
-        print('-------PREDICTIONS-------')
+        if args.verbose:
+            print('-------PREDICTIONS-------')
         interpolated_sentences = [start_sentence] + interpolated_sentences + [end_sentence]
         for i, sentence in enumerate(interpolated_sentences):
+            if i > 0 and sentence == interpolated_sentences[i-1]:
+                continue
             prob = victim_model(sentence)
             label = prob_to_label(prob)
-            if label != start_label and abs(prob - 0.5) < abs(best_adv_prob - 0.5):
+            if i+1 < len(interpolated_sentences) and label != start_label and (abs(prob - 0.5) < abs(best_adv_prob - 0.5) or is_initial):
+                is_initial = False
                 best_adv_prob = prob
                 end_sentence = sentence
-            print(f'{sentence} pred:{prob}')
+            if args.verbose:
+                print(f'{prob:.3f} & {sentence.replace("<eos>", "")} \\\\')
 
     print('-------Attack Result-------')
     print(f'Victim Sentence: {start_sentence} pred:{victim_model(start_sentence)}')
-    print(f'Reference Sentence: {end_sentence} pred:{victim_model(sentence)}')
+    print(f'Best Adv Sentence: {end_sentence} pred:{victim_model(sentence)}')
 
     return end_sentence
 
@@ -172,6 +183,7 @@ if __name__ == '__main__':
     parser.add_argument('-st', '--steps', type=int, default=8)
     parser.add_argument('--iter', type=int, default=3)
     parser.add_argument('--rseed', type=int, default=1007)
+    parser.add_argument('-v', '--verbose', action='store_true')
 
     parser.add_argument('-dd', '--data_dir', type=str, default='data')
     parser.add_argument('-ms', '--max_sequence_length', type=int, default=50)
