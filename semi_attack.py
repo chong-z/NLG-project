@@ -137,15 +137,23 @@ def do_one_attack(vae, victim_sentence, victim_model, args):
         if args.verbose:
             print('-------PREDICTIONS-------')
         interpolated_sentences = [start_sentence] + interpolated_sentences + [end_sentence]
+        found_next = False
         for i, sentence in enumerate(interpolated_sentences):
             if i > 0 and sentence == interpolated_sentences[i-1]:
                 continue
             prob = victim_model(sentence)
             label = prob_to_label(prob)
-            if i+1 < len(interpolated_sentences) and label != start_label and (abs(prob - 0.5) < abs(best_adv_prob - 0.5) or is_initial):
-                is_initial = False
-                best_adv_prob = prob
-                end_sentence = sentence
+            if i+1 < len(interpolated_sentences) and label != start_label:
+                if args.most_similar and not found_next:
+                    best_adv_prob = prob
+                    end_sentence = sentence
+                    found_next = True
+
+                if not args.most_similar and (abs(prob - 0.5) < abs(best_adv_prob - 0.5) or is_initial):
+                    is_initial = False
+                    best_adv_prob = prob
+                    end_sentence = sentence
+
             if args.verbose:
                 print(f'{prob:.3f} & {sentence.replace("<eos>", "")} \\\\')
 
@@ -184,6 +192,7 @@ if __name__ == '__main__':
     parser.add_argument('--iter', type=int, default=3)
     parser.add_argument('--rseed', type=int, default=1007)
     parser.add_argument('-v', '--verbose', action='store_true')
+    parser.add_argument('--most_similar', action='store_true')
 
     parser.add_argument('-dd', '--data_dir', type=str, default='data')
     parser.add_argument('-ms', '--max_sequence_length', type=int, default=50)
