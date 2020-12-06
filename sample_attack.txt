@@ -1,0 +1,184 @@
+Model loaded from bin/2020-Dec-05-22:30:44/E9.pytorch
+-------ITERATION 0-------
+Victim Sentence: a sometimes tedious film involving dull characters and boring motives .
+Reference Sentence: a deep and meaningful film that refreshes the soul .
+-------PREDICTIONS-------
+a sometimes tedious film involving dull characters and boring motives . pred:0.0001865881640696898
+a perceptive , good-natured and surprisingly romantic comedy <eos> pred:0.9998681545257568
+a perceptive , good-natured and surprisingly romantic comedy <eos> pred:0.9998681545257568
+a perceptive , good-natured and surprisingly romantic comedy <eos> pred:0.9998681545257568
+a perceptive , good-natured and surprisingly romantic comedy <eos> pred:0.9998681545257568
+a film that affirms the nourishing aspects of love , and <eos> pred:0.9998408555984497
+a film that affirms the nourishing aspects of love , and <eos> pred:0.9998408555984497
+a film that affirms the nourishing aspects of love and companionship <eos> pred:0.9998651742935181
+a film that affirms the nourishing aspects of love and companionship <eos> pred:0.9998651742935181
+a film that affirms the nourishing aspects of love and companionship <eos> pred:0.9998651742935181
+a film that affirms the nourishing aspects of love and companionship <eos> pred:0.9998651742935181
+a film that affirms the nourishing aspects of love and companionship <eos> pred:0.9998651742935181
+a film that affirms the nourishing aspects of love and companionship <eos> pred:0.9998651742935181
+a deep and meaningful film that refreshes the soul . pred:0.999883770942688
+-------ITERATION 1-------
+Victim Sentence: a sometimes tedious film involving dull characters and boring motives .
+Reference Sentence: a film that affirms the nourishing aspects of love , and <eos>
+-------PREDICTIONS-------
+a sometimes tedious film involving dull characters and boring motives . pred:0.0001865881640696898
+a fairly weak retooling of typical late-twenty-somethings natter on a fairly inexperienced filmmaker <eos> pred:0.0002776317414827645
+a refreshingly smart and newfangled variation on several themes derived from far less sophisticated and knowing horror films <eos> pred:0.9997881054878235
+a bit exploitative but also nicely done , morally alert and street-smart <eos> pred:0.999728262424469
+a bit exploitative but also nicely done , morally alert and street-smart <eos> pred:0.999728262424469
+a bit exploitative but also nicely done , morally alert and street-smart <eos> pred:0.999728262424469
+a delicious and delicately calibrated <eos> pred:0.999875545501709
+the movie ' s progression and a powerfully evocative mood combining heated sexuality with the befuddling complications <eos> pred:0.9996848106384277
+the movie ' s progression and the quirky , characterization , poignancy , and intelligence <eos> pred:0.997438907623291
+the film ' s messages of tolerance and diversity <eos> pred:0.9349363446235657
+the film ' s cheeky wit and <eos> pred:0.9998152852058411
+the film ' s cheeky wit and the believability of the situation <eos> pred:0.9998289346694946
+the film ' s cheeky wit and the believability of the situation <eos> pred:0.9998289346694946
+a film that affirms the nourishing aspects of love , and <eos> pred:0.9998408555984497
+-------ITERATION 2-------
+Victim Sentence: a sometimes tedious film involving dull characters and boring motives .
+Reference Sentence: the film ' s messages of tolerance and diversity <eos>
+-------PREDICTIONS-------
+a sometimes tedious film involving dull characters and boring motives . pred:0.0001865881640696898
+is a shaky , uncertain film <eos> pred:0.00034921630867756903
+is a shaky , uncertain film <eos> pred:0.00034921630867756903
+is a shaky , uncertain film <eos> pred:0.00034921630867756903
+is a shaky , uncertain film <eos> pred:0.00034921630867756903
+it ' s a wonderful , sobering yarn that feeds on the chest hair <eos> pred:0.9998726844787598
+the film ' s thoroughly winning tone <eos> pred:0.9998821020126343
+the film ' s thoroughly winning tone <eos> pred:0.9998821020126343
+the film ' s thoroughly winning tone <eos> pred:0.9998821020126343
+the film ' s thoroughly winning tone <eos> pred:0.9998821020126343
+the film ' s thoroughly winning tone <eos> pred:0.9998821020126343
+the film ' s cheeky charm <eos> pred:0.9998650550842285
+the film ' s cheeky charm <eos> pred:0.9998650550842285
+the film ' s messages of tolerance and diversity <eos> pred:0.9349363446235657
+-------ITERATION 3-------
+Victim Sentence: a sometimes tedious film involving dull characters and boring motives .
+Reference Sentence: the film ' s cheeky charm <eos>
+-------PREDICTIONS-------
+a sometimes tedious film involving dull characters and boring motives . pred:0.0001865881640696898
+is a refreshingly forthright one of those all-star reunions <eos> pred:0.9998631477355957
+is a refreshingly forthright one of those all-star reunions <eos> pred:0.9998631477355957
+is a refreshingly forthright one of those all-star reunions <eos> pred:0.9998631477355957
+is a refreshingly forthright one of those all-star reunions <eos> pred:0.9998631477355957
+is a refreshingly forthright one <eos> pred:0.9998589754104614
+is a refreshingly forthright one <eos> pred:0.9998589754104614
+a great film noir veil <eos> pred:0.859646737575531
+a great film noir veil <eos> pred:0.859646737575531
+a great film noir veil <eos> pred:0.859646737575531
+a good shot <eos> pred:0.9998427629470825
+the film ' s thoroughly winning tone <eos> pred:0.9998821020126343
+the film ' s thoroughly winning tone <eos> pred:0.9998821020126343
+the film ' s cheeky charm <eos> pred:0.9998650550842285
+-------ITERATION 4-------
+Victim Sentence: a sometimes tedious film involving dull characters and boring motives .
+Reference Sentence: a great film noir veil <eos>
+-------PREDICTIONS-------
+a sometimes tedious film involving dull characters and boring motives . pred:0.0001865881640696898
+a solidly constructed work that feels more like a travel-agency video targeted with a flimsy ending <eos> pred:0.02976805344223976
+a solidly constructed work <eos> pred:0.9998490810394287
+a solidly constructed work <eos> pred:0.9998490810394287
+a pleasant distraction , but solidly entertaining , thought-provoking and ultimately unpredictable <eos> pred:0.999869704246521
+a pleasant enough dish that feels more like a travel-agency video targeted to be desired . <eos> pred:0.02388676255941391
+a pleasant enough dish that feels more like a travel-agency video targeted . <eos> pred:0.0397547110915184
+is a refreshingly forthright one <eos> pred:0.9998589754104614
+is a refreshingly forthright one <eos> pred:0.9998589754104614
+is a refreshingly forthright one <eos> pred:0.9998589754104614
+is a refreshingly forthright one <eos> pred:0.9998589754104614
+is a lame kiddie flick <eos> pred:0.00020646225311793387
+an enjoyable feel-good movie <eos> pred:0.9998842477798462
+a great film noir veil <eos> pred:0.859646737575531
+-------ITERATION 5-------
+Victim Sentence: a sometimes tedious film involving dull characters and boring motives .
+Reference Sentence: a solidly constructed work <eos>
+-------PREDICTIONS-------
+a sometimes tedious film involving dull characters and boring motives . pred:0.0001865881640696898
+' s a film that affirms the nourishing aspects of love and companionship <eos> pred:0.9998718500137329
+' s a film that affirms the nourishing aspects of love and companionship <eos> pred:0.9998718500137329
+' s a very sincere film with a bouncy score <eos> pred:0.999840497970581
+' s a very sincere film with a bouncy score <eos> pred:0.999840497970581
+a film that ' s not merely about kicking undead * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * off spookily enough <eos> pred:0.9979817867279053
+a film that ' s neither as subtle as a party clown gets violently gang-raped <eos> pred:0.0002645610074978322
+a film that ' s neither as subtle as a party clown gets violently gang-raped <eos> pred:0.0002645610074978322
+a solidly constructed <eos> pred:0.9998522996902466
+a solidly constructed <eos> pred:0.9998522996902466
+a solidly constructed <eos> pred:0.9998522996902466
+a solidly constructed <eos> pred:0.9998522996902466
+a stylish psychological thriller <eos> pred:0.9997602105140686
+a solidly constructed work <eos> pred:0.9998490810394287
+-------ITERATION 6-------
+Victim Sentence: a sometimes tedious film involving dull characters and boring motives .
+Reference Sentence: a film that ' s not merely about kicking undead * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * off spookily enough <eos>
+-------PREDICTIONS-------
+a sometimes tedious film involving dull characters and boring motives . pred:0.0001865881640696898
+is a wish that makes it a failure . <eos> pred:0.000304802117170766
+is a wish that ' s been acted and then probably have been acted out . <eos> pred:0.0012754970230162144
+is a great yarn that ' s been acted and replaced by goth goofiness and <eos> pred:0.013046694919466972
+is a great film that ' s been acted by a failure . <eos> pred:0.0048162806779146194
+is a film that ' s been acted and then becomes bring something purer than cloying <eos> pred:0.667168140411377
+is a film that ' s been acted and then becomes bring something purer than cloying <eos> pred:0.667168140411377
+' s a great film that ' s been acted in the translation <eos> pred:0.9997206330299377
+' s a great film that ' s been acted in the translation <eos> pred:0.9997206330299377
+' s a film that affirms the nourishing aspects of unsuspecting lawmen <eos> pred:0.9997212290763855
+' s a film that affirms the nourishing aspects of unsuspecting lawmen <eos> pred:0.9997212290763855
+' s a fairy tale of a film that ' s been acted <eos> pred:0.997717022895813
+' s a fairy tale of a film that ' s been acted <eos> pred:0.997717022895813
+a film that ' s not merely about kicking undead * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * off spookily enough <eos> pred:0.9979817867279053
+-------ITERATION 7-------
+Victim Sentence: a sometimes tedious film involving dull characters and boring motives .
+Reference Sentence: is a film that ' s been acted and then becomes bring something purer than cloying <eos>
+-------PREDICTIONS-------
+a sometimes tedious film involving dull characters and boring motives . pred:0.0001865881640696898
+is a refreshingly forthright one of two directors with far less endearing disabilities <eos> pred:0.9990721940994263
+is a refreshingly forthright one of two directors with far less endearing disabilities <eos> pred:0.9990721940994263
+is a refreshingly forthright one of two directors with far less endearing disabilities <eos> pred:0.9990721940994263
+is a refreshingly forthright one of two directors with far less endearing disabilities <eos> pred:0.9990721940994263
+is a refreshingly forthright one of those all-star reunions <eos> pred:0.9998631477355957
+is a refreshingly forthright one of those all-star reunions <eos> pred:0.9998631477355957
+is a fragmented film that ' s been acted by a failure . <eos> pred:0.0002602278545964509
+is a fragmented film that ' s been acted in favor of tradition and warmth <eos> pred:0.5952647924423218
+is a fragmented film that ' s been acted in favor of tradition and warmth <eos> pred:0.5952647924423218
+is so convinced that it ' s hard to resist his pleas to spare wildlife <eos> pred:0.995510458946228
+it ' s a film that affirms the nourishing aspects of a culture <eos> pred:0.9998385906219482
+it ' s a film that affirms the nourishing aspects of a culture <eos> pred:0.9998385906219482
+is a film that ' s been acted and then becomes bring something purer than cloying <eos> pred:0.667168140411377
+-------ITERATION 8-------
+Victim Sentence: a sometimes tedious film involving dull characters and boring motives .
+Reference Sentence: is a fragmented film that ' s been acted in favor of tradition and warmth <eos>
+-------PREDICTIONS-------
+a sometimes tedious film involving dull characters and boring motives . pred:0.0001865881640696898
+a chilling tale of race , dumb and thoroughly obnoxious comedy . <eos> pred:0.9875311255455017
+a perceptive moment in the film ' s thoroughly recycled aspects <eos> pred:0.01472533494234085
+a film that ' s neither original nor terribly funny , moving yarn that ultimately coheres into the upper echelons of the directing world . <eos> pred:0.026341285556554794
+a film that ' s neither original nor terribly funny , moving yarn that ultimately coheres into the upper echelons of the directing world . <eos> pred:0.026341285556554794
+a film that ' s neither original nor terribly funny , with superb performances throughout this movie <eos> pred:0.9890304207801819
+' s a road-trip movie that comes along with a solid cast . <eos> pred:0.9997884631156921
+' s a pedestrian , moving yarn that screams out of unsuspecting lawmen . <eos> pred:0.9727424383163452
+' s a pedestrian , moving yarn that screams out of unsuspecting lawmen . <eos> pred:0.9727424383163452
+' s a pedestrian , moving yarn that screams out of unsuspecting lawmen . <eos> pred:0.9727424383163452
+' s a pedestrian , moving yarn that screams out of unsuspecting lawmen . <eos> pred:0.9727424383163452
+' s a pedestrian , moving yarn that screams out of unsuspecting lawmen . <eos> pred:0.9727424383163452
+' s a pedestrian , moving yarn that screams out of unsuspecting lawmen . <eos> pred:0.9727424383163452
+is a fragmented film that ' s been acted in favor of tradition and warmth <eos> pred:0.5952647924423218
+-------ITERATION 9-------
+Victim Sentence: a sometimes tedious film involving dull characters and boring motives .
+Reference Sentence: ' s a pedestrian , moving yarn that screams out of unsuspecting lawmen . <eos>
+-------PREDICTIONS-------
+a sometimes tedious film involving dull characters and boring motives . pred:0.0001865881640696898
+is a refreshingly forthright one and a little more than punishment . <eos> pred:0.9997960925102234
+is a refreshingly forthright one and a little more than punishment . <eos> pred:0.9997960925102234
+is a refreshingly forthright one of the most repellent things to date and love <eos> pred:0.9998301267623901
+is a movie that understands the mind and spirit along with a game supporting cast <eos> pred:0.9998206496238708
+is a movie that understands the mind and spirit along with a game supporting cast <eos> pred:0.9998206496238708
+is a movie that is a pleasant distraction , a friday night diversion . <eos> pred:0.9998062252998352
+is a movie that is a pleasant distraction , a friday night diversion <eos> pred:0.9998254179954529
+is a movie that ' s not merely offensive . <eos> pred:0.9670820236206055
+is a movie that ' s not merely offensive . <eos> pred:0.9670820236206055
+' s a terrible movie that ' s not even a sweet , genuine rather than cloying <eos> pred:0.00023774268629495054
+' s a terrible movie that ' s not scary , not smart and well-crafted . <eos> pred:0.00021722976816818118
+' s a terrible movie that ' s not scary . <eos> pred:0.00023114318901207298
+' s a pedestrian , moving yarn that screams out of unsuspecting lawmen . <eos> pred:0.9727424383163452
+-------Attack Result-------
+Victim Sentence: a sometimes tedious film involving dull characters and boring motives . pred:0.0001865881640696898
+Reference Sentence: is a movie that ' s not merely offensive . <eos> pred:0.9727424383163452
