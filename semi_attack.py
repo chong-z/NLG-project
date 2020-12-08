@@ -11,7 +11,8 @@ from model import SentenceVAE
 from ptb import DefaultTokenizer
 from utils import to_var, idx2word, interpolate
 
-# from latent_optimizer import Semantic_Loss
+from lm_scorer.models.auto import AutoLMScorer as LMScorer
+from universal_sentence_encoder import UniversalSentenceEncoder
 
 device = torch.device("cuda:0")
 
@@ -111,7 +112,7 @@ def get_interpolations(vae, sample_start, sample_end, args):
     return interpolated_sentences
 
 
-def do_one_attack(vae, victim_sentence, victim_model, args):
+def do_one_attack(vae, victim_sentence, victim_model, ppl, use, args):
     def prob_to_label(score):
         return 1 if score > 0.5 else 0
 
@@ -126,8 +127,8 @@ def do_one_attack(vae, victim_sentence, victim_model, args):
     is_initial = True
 
     print(f'\n-------Initial Inputs-------')
-    print(f'Victim Sentence: {start_sentence} pred:{start_prob}')
-    print(f'Reference Sentence: {end_sentence} pred:{best_adv_prob}')
+    print(f'Victim Sentence: {start_sentence} pred:{start_prob} PPL:{ppl(start_sentence):.0f} USE:{use(start_sentence, start_sentence):.2f}')
+    print(f'Reference Sentence: {end_sentence} pred:{best_adv_prob} PPL:{ppl(end_sentence):.0f} USE:{use(start_sentence, end_sentence):.2f}')
 
     for i in range(args.iter):
         print(f'\n-------ITERATION {i}-------')
@@ -136,7 +137,9 @@ def do_one_attack(vae, victim_sentence, victim_model, args):
 
         if args.verbose:
             print('-------PREDICTIONS-------')
+            print(f'Pred & Sentence & PPL & USE \\\\')
         interpolated_sentences = [start_sentence] + interpolated_sentences + [end_sentence]
+        interpolated_sentences = [s.replace("<eos>", "") for s in interpolated_sentences]
         found_next = False
         for i, sentence in enumerate(interpolated_sentences):
             if i > 0 and sentence == interpolated_sentences[i-1]:
@@ -155,11 +158,11 @@ def do_one_attack(vae, victim_sentence, victim_model, args):
                     end_sentence = sentence
 
             if args.verbose:
-                print(f'{prob:.3f} & {sentence.replace("<eos>", "")} \\\\')
+                print(f'{prob:.3f} & {sentence} & {ppl(sentence):.0f} & {use(start_sentence, sentence):.2f} \\\\')
 
     print('-------Attack Result-------')
-    print(f'Victim Sentence: {start_sentence} pred:{victim_model(start_sentence)}')
-    print(f'Best Adv Sentence: {end_sentence} pred:{victim_model(sentence)}')
+    print(f'Victim Sentence: {start_sentence} pred:{victim_model(start_sentence)} PPL:{ppl(start_sentence):.0f} USE:{use(start_sentence, start_sentence):.2f}')
+    print(f'Best Adv Sentence: {end_sentence} pred:{victim_model(end_sentence)} PPL:{ppl(end_sentence):.0f} USE:{use(start_sentence, end_sentence):.2f}')
 
     return end_sentence
 
@@ -175,9 +178,22 @@ def set_rseed(random_seed):
 def main(args):
     set_rseed(args.rseed)
 
+    if args.ppl_use:
+        lm_scorer = LMScorer.from_pretrained("gpt2", device="cuda:0", batch_size=1)
+        u = UniversalSentenceEncoder()
+        def ppl(s):
+            return -lm_scorer.sentence_score(s, log=True)
+        def use(s1, s2):
+            return u.cos_sim(s1, s2)
+    else:
+        def ppl(s):
+            return 0
+        def use(s1, s2):
+            return 0
+
     vae = load_vae_model_from_args(args)
     victim_model = load_huggingface_model_from_args(args)
-    do_one_attack(vae, args.victim_sentence, victim_model, args)
+    do_one_attack(vae, args.victim_sentence, victim_model, ppl, use, args)
 
 
 if __name__ == '__main__':
@@ -193,6 +209,7 @@ if __name__ == '__main__':
     parser.add_argument('--rseed', type=int, default=1007)
     parser.add_argument('-v', '--verbose', action='store_true')
     parser.add_argument('--most_similar', action='store_true')
+    parser.add_argument('--ppl_use', action='store_true')
 
     parser.add_argument('-dd', '--data_dir', type=str, default='data')
     parser.add_argument('-ms', '--max_sequence_length', type=int, default=50)
