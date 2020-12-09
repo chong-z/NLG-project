@@ -4,6 +4,8 @@ import torch
 import argparse
 import random
 import numpy as np
+import json
+import time
 
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, TextClassificationPipeline
 
@@ -112,27 +114,27 @@ def get_interpolations(vae, sample_start, sample_end, args):
     return interpolated_sentences
 
 
-def do_one_attack(vae, victim_sentence, victim_model, ppl, use, args):
-    def prob_to_label(score):
+def prob_to_label(score):
         return 1 if score > 0.5 else 0
 
+def do_one_attack(vae, victim_sentence, reference_sentence, victim_model, ppl, use, args):
     start_sentence = victim_sentence
     start_prob = victim_model(start_sentence)
     start_label = prob_to_label(start_prob)
-    end_sentence = args.reference_sentence
+    end_sentence = reference_sentence
     end_prob = victim_model(end_sentence)
     end_label = prob_to_label(end_prob)
     assert start_label != end_label
-    best_adv_prob = end_prob
+    best_use = use(start_sentence, end_sentence)
     is_initial = True
 
     print(f'\n-------Initial Inputs-------')
     print(f'Victim Sentence: {start_sentence} pred:{start_prob} PPL:{ppl(start_sentence):.0f} USE:{use(start_sentence, start_sentence):.2f}')
-    print(f'Reference Sentence: {end_sentence} pred:{best_adv_prob} PPL:{ppl(end_sentence):.0f} USE:{use(start_sentence, end_sentence):.2f}')
+    print(f'Reference Sentence: {end_sentence} pred:{end_prob} PPL:{ppl(end_sentence):.0f} USE:{use(start_sentence, end_sentence):.2f}')
 
     for i in range(args.iter):
         print(f'\n-------ITERATION {i}-------')
-        print(f'Best Adv Sentence: {end_sentence} pred:{best_adv_prob}')
+        print(f'Best Adv Sentence: {end_sentence} pred:{end_prob}')
         interpolated_sentences = get_interpolations(vae, start_sentence, end_sentence, args)
 
         if args.verbose:
@@ -148,14 +150,15 @@ def do_one_attack(vae, victim_sentence, victim_model, ppl, use, args):
             label = prob_to_label(prob)
             if i+1 < len(interpolated_sentences) and label != start_label:
                 if args.most_similar and not found_next:
-                    best_adv_prob = prob
                     end_sentence = sentence
                     found_next = True
 
-                if not args.most_similar and (abs(prob - 0.5) < abs(best_adv_prob - 0.5) or is_initial):
-                    is_initial = False
-                    best_adv_prob = prob
-                    end_sentence = sentence
+                if not args.most_similar:
+                    new_use = use(start_sentence, sentence)
+                    if new_use > best_use:
+                        is_initial = False
+                        best_use = new_use
+                        end_sentence = sentence
 
             if args.verbose:
                 print(f'{prob:.3f} & {sentence} & {ppl(sentence):.0f} & {use(start_sentence, sentence):.2f} \\\\')
@@ -166,6 +169,66 @@ def do_one_attack(vae, victim_sentence, victim_model, ppl, use, args):
 
     return end_sentence
 
+
+def do_n_attacks(vae, victim_sentence, victim_model, ppl, use, args):
+    victim_label = prob_to_label(victim_model(victim_sentence))
+
+    # Get sentences with the different label.
+    import nlp
+    sst2_data = nlp.load_dataset('glue', 'sst2')['train']
+    sentences = [e['sentence'] for e in sst2_data if e['label'] != victim_label and prob_to_label(victim_model(e['sentence'])) != victim_label]
+    sentences = random.sample(sentences, args.n_attacks)
+
+    print(f'\n-------Running {args.n_attacks} Attacks-------')
+    print(f'sentences = {sentences}')
+
+    use_adv = []
+    for s in sentences:
+        adv = do_one_attack(vae, victim_sentence, s, victim_model, ppl, use, args)
+        use_adv.append((use(victim_sentence, adv), adv))
+
+    use_adv = sorted(use_adv, reverse=True)
+    best_adv = use_adv[0][1]
+    print(f'\n-------Result from {args.n_attacks} Attacks-------')
+    print(f'use_adv = {use_adv}')
+    print(f'Victim Sentence: {victim_sentence} pred:{victim_model(victim_sentence)} PPL:{ppl(victim_sentence):.0f} USE:{use(victim_sentence, victim_sentence):.2f}')
+    print(f'Best Adv Sentence: {best_adv} pred:{victim_model(best_adv)} PPL:{ppl(best_adv):.0f} USE:{use(victim_sentence, best_adv):.2f}')
+    return best_adv
+
+
+def do_evaluation(vae, victim_model, ppl, use, args):
+    # Get validations examples.
+    import nlp
+    sst2_data = nlp.load_dataset('glue', 'sst2')['validation']
+    victim_sentences = sst2_data['sentence']
+    victim_sentences = random.sample(victim_sentences, args.n_eval)
+
+    advs = []
+    for i, vs in enumerate(victim_sentences):
+        print(f'\n-------Start Evaluation {i}/{args.n_eval}-------')
+        adv = do_n_attacks(vae, vs, victim_model, ppl, use, args)
+        print(f'\n-------Finished Evaluation {i}/{args.n_eval}-------')
+        advs.append(adv)
+
+    print(f'\n-------Evaluation Results-------')
+    summary = []
+    for vic, adv in zip(victim_sentences, advs):
+        summary.append({
+            'victim_sentence': vic,
+            'victim_pred': victim_model(vic),
+            'victim_ppl': ppl(vic),
+            'adv_sentence': adv,
+            'adv_pred': victim_model(adv),
+            'adv_ppl': ppl(adv),
+            'use': use(vic, adv),
+        })
+    print(summary)
+
+    ts = time.strftime('%Y-%b-%d-%H:%M:%S', time.gmtime()) + '.json'
+    save_eval_path = os.path.join(args.save_eval_path, ts)
+    print(f'Saving summary to {save_eval_path}...')
+    with open(save_eval_path, 'w') as outfile:
+        json.dump(summary, outfile)
 
 def set_rseed(random_seed):
     random.seed(random_seed)
@@ -179,7 +242,9 @@ def main(args):
     set_rseed(args.rseed)
 
     if args.ppl_use:
+        print(f'Loading GPT-2...')
         lm_scorer = LMScorer.from_pretrained("gpt2", device="cuda:0", batch_size=1)
+        print(f'Loading UniversalSentenceEncoder...')
         u = UniversalSentenceEncoder()
         def ppl(s):
             return -lm_scorer.sentence_score(s, log=True)
@@ -191,27 +256,40 @@ def main(args):
         def use(s1, s2):
             return 0
 
+    print(f'Loading the VAE model...')
     vae = load_vae_model_from_args(args)
+    print(f'Loading the victim model from HuggingFace...')
     victim_model = load_huggingface_model_from_args(args)
-    do_one_attack(vae, args.victim_sentence, victim_model, ppl, use, args)
+
+    if args.n_eval > 0:
+        print(f'\n-------Evaluation Mode-------')
+        do_evaluation(vae, victim_model, ppl, use, args)
+    else:
+        print(f'\n-------Debug Mode-------')
+        if args.reference_sentence is None:
+            do_n_attacks(vae, args.victim_sentence, victim_model, ppl, use, args)
+        else:
+            do_one_attack(vae, args.victim_sentence, args.reference_sentence, victim_model, ppl, use, args)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-c', '--load_checkpoint', type=str)
-    # parser.add_argument('-n', '--num_samples', type=int, default=10)
     parser.add_argument('-m', '--victim_model', type=str, default='distilbert-base-uncased-finetuned-sst-2-english')
-    parser.add_argument('--victim_sentence', type=str)
-    parser.add_argument('--reference_sentence', type=str)
+    parser.add_argument('--victim_sentence', type=str, default=None)
+    parser.add_argument('--reference_sentence', type=str, default=None)
+    parser.add_argument('--n_attacks', type=int, default=1)
     parser.add_argument('-st', '--steps', type=int, default=8)
     parser.add_argument('--iter', type=int, default=3)
     parser.add_argument('--rseed', type=int, default=1007)
     parser.add_argument('-v', '--verbose', action='store_true')
     parser.add_argument('--most_similar', action='store_true')
     parser.add_argument('--ppl_use', action='store_true')
+    parser.add_argument('--n_eval', type=int, default=0)
 
     parser.add_argument('-dd', '--data_dir', type=str, default='data')
+    parser.add_argument('--save_eval_path', type=str, default='eval')
     parser.add_argument('-ms', '--max_sequence_length', type=int, default=50)
     parser.add_argument('-eb', '--embedding_size', type=int, default=300)
     parser.add_argument('-rnn', '--rnn_type', type=str, default='gru')

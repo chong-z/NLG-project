@@ -16,3 +16,6 @@
 # python3 semi_attack.py -c bin/2020-Dec-05-22:30:44/E9.pytorch --iter 10 --steps 20 --victim_sentence "a sometimes tedious film involving dull characters and boring motives ." --reference_sentence "a deep and meaningful film that refreshes the soul ." --rseed 3
 # python3 semi_attack.py -c bin/2020-Dec-05-22:30:44/E9.pytorch --iter 5 --steps 20 --victim_sentence "i study at ucla" --reference_sentence "i finished my final exam at ucla" --rseed 7 -v
 # python3 semi_attack.py -c bin/2020-Dec-05-22:30:44/E9.pytorch --iter 5 --steps 20 --victim_sentence "a gorgeous , high-spirited musical from india that exquisitely mixed music , dance , song , and high drama ." --reference_sentence "i finished my final exam at ucla" --rseed 7 -v
+
+# Evaluations
+# python semi_attack.py -c models/sample-LSTM/E9.pytorch --rnn_type lstm --iter 20 --steps 20 --rseed 3 --n_attacks 20 --ppl_use --n_eval 100 -v --victim_model "distilbert-base-uncased-finetuned-sst-2-english" > eval/lstm-eval-1.txt
